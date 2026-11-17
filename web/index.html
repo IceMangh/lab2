@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Задача о рюкзаке</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="search.js" defer></script>
+  <script src="structures.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-pack" viewBox="0 0 24 24"><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 13H3v6a2 2 0 0 0 2 2h1m12-8h3v6a2 2 0 0 1-2 2h-1M6 9a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9Z"/><path d="M9 14h6v5H9zM9 10h6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m14 5 5 5M4 20l5-1L20 8a2.8 2.8 0 0 0-4-4L5 15l-1 5Z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m9 5 11 7-11 7V5Z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+    <symbol id="i-step" viewBox="0 0 24 24"><path d="m5 5 10 7-10 7V5Zm14 0v14"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></symbol>
+    <symbol id="i-dice" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01" stroke-width="3"/></symbol>
+  </svg>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#"><svg><use href="#i-pack"/></svg>Рюкзак</a>
+      <nav class="nav-tabs" aria-label="Разделы">
+        <button class="nav-tab active" data-view="packing">Сборка</button>
+        <button class="nav-tab" data-view="trace">Ход решения</button>
+        <button class="nav-tab" data-view="comparison">Сравнение</button>
+        <button class="nav-tab" data-view="structures">Структуры</button>
+      </nav>
+      <button class="export-button" id="export-button"><svg><use href="#i-download"/></svg>CSV</button>
+    </header>
+
+    <main>
+      <div id="server-notice" class="server-notice" hidden>Для расчётов запустите <code>python3 server.py</code> в папке проекта, затем откройте <a href="http://127.0.0.1:8765/">127.0.0.1:8765</a>. Интерфейс работает в браузере, вычисления выполняет C++ программа.</div>
+      <section class="intro">
+        <div>
+          <h1 id="page-heading">Задача о рюкзаке</h1>
+          <p id="page-description">Максимальная стоимость при ограниченном объёме.</p>
+        </div>
+        <label class="scenario-picker">Набор
+          <select id="scenario-select" aria-label="Готовый набор предметов">
+            <option value="mountains">Поход · 8 предметов</option>
+            <option value="tutorial">Учебный · 4 предмета</option>
+            <option value="city">Город · 6 предметов</option>
+            <option value="large">Случайный · 40 предметов</option>
+            <option value="custom" hidden>Свой набор</option>
+          </select>
+        </label>
+      </section>
+
+      <section id="packing-view" class="workspace">
+        <aside class="inventory panel">
+          <div class="inventory-heading">
+            <h2>Предметы <span id="item-count">8</span></h2>
+            <button id="edit-button" class="icon-button" title="Редактировать" aria-label="Редактировать предметы"><svg><use href="#i-edit"/></svg></button>
+          </div>
+          <p class="section-hint" id="inventory-hint">Нажмите или перетащите предмет в рюкзак.</p>
+          <div class="quick-generator">
+            <label><input id="quick-count" type="number" min="0" max="200" value="12" aria-label="Количество предметов для генерации"><span>шт.</span></label>
+            <button id="quick-generate" title="Новый случайный набор"><svg><use href="#i-dice"/></svg>Новый набор</button>
+            <button id="generate-button" class="icon-button" title="Настройки генерации" aria-label="Настройки генерации"><svg><use href="#i-settings"/></svg></button>
+          </div>
+          <div class="item-column-labels"><span id="generation-status">Предмет</span><span>Объём</span><span>Стоимость</span></div>
+          <div id="item-list" class="item-list" aria-label="Предметы"></div>
+          <div class="inventory-actions"><button id="add-button" class="secondary-button"><svg><use href="#i-plus"/></svg>Добавить предмет</button></div>
+        </aside>
+
+        <div class="packing-area" id="packing-area">
+          <div class="capacity-card panel">
+            <h2>Вместимость</h2>
+            <div class="capacity-control">
+              <input type="range" id="capacity-slider" min="0" max="50" value="18" aria-label="Вместимость рюкзака">
+              <div class="number-field"><input id="capacity-input" type="number" min="0" max="1000000" value="18" aria-label="Вместимость числом"><span>ед.</span></div>
+            </div>
+          </div>
+
+          <div class="pack-stage panel" id="drop-zone" aria-label="Перетащите предмет сюда">
+            <div class="stage-topline">
+              <span class="result-status" id="result-status">Рюкзак пуст</span>
+              <button id="empty-button" class="text-button"><svg><use href="#i-reset"/></svg>Очистить</button>
+            </div>
+            <div class="pack-scene">
+              <div class="rucksack" id="rucksack">
+                <svg class="rucksack-art" viewBox="0 0 420 470" fill="none" aria-hidden="true">
+                  <path d="M160 88V58c0-28 100-28 100 0v30" stroke="#7C8F7D" stroke-width="15"/>
+                  <path d="M89 177C60 164 48 186 48 223v113c0 26 13 39 42 34M331 177c29-13 41 9 41 46v113c0 26-13 39-42 34" fill="#9BAE9C"/>
+                  <path d="M83 157c0-56 36-80 127-80s127 24 127 80v239c0 33-21 48-56 48H139c-35 0-56-15-56-48V157Z" fill="#BFCDBD" stroke="#8B9F8B" stroke-width="2"/>
+                  <path d="M98 119c12-37 211-37 224 0l-7 37c-3 16-36 26-105 26s-102-10-105-26l-7-37Z" fill="#D4DED0" stroke="#8B9F8B" stroke-width="2"/>
+                  <rect x="134" y="134" width="18" height="61" rx="4" fill="#879780"/>
+                  <rect x="268" y="134" width="18" height="61" rx="4" fill="#879780"/>
+                  <rect x="130" y="158" width="26" height="23" rx="4" fill="#556D57"/>
+                  <rect x="264" y="158" width="26" height="23" rx="4" fill="#556D57"/>
+                  <rect x="111" y="197" width="198" height="135" rx="13" fill="#EDF1E9" stroke="#A4B49E" stroke-width="1.5"/>
+                  <path d="M119 350c0-11 9-20 20-20h142c11 0 20 9 20 20v46c0 17-15 27-37 27H156c-22 0-37-10-37-27v-46Z" fill="#D4DED0" stroke="#8B9F8B" stroke-width="1.5"/>
+                  <path d="M130 350h160m-18 0v14" stroke="#879D83" stroke-width="3" stroke-linecap="round"/>
+                  <rect x="190" y="373" width="40" height="22" rx="4" fill="#F3F5EE"/>
+                  <path d="m199 388 8-10 5 6 4-3 6 7h-23Z" fill="#8B9F8B"/>
+                </svg>
+                <div id="packed-items" class="packed-items" aria-label="Предметы в рюкзаке"></div>
+                <div id="empty-pack-label" class="empty-pack-label">Перетащите<br>предмет сюда</div>
+              </div>
+              <div class="pack-count"><strong id="scene-selected-count">0</strong><span id="scene-count-word">предметов</span></div>
+            </div>
+            <div class="stage-bottom"><span>Объём без учёта формы</span><span>Нажмите на предмет внутри, чтобы убрать его</span></div>
+          </div>
+
+          <div class="assembly-bar panel" id="assembly-bar">
+            <div class="assembly-caption"><span id="assembly-status" aria-live="polite">Запустите поиск или соберите набор вручную.</span><span id="assembly-progress"></span></div>
+            <div class="assembly-controls">
+              <button id="playback-button" class="playback-button" disabled><svg><use href="#i-play"/></svg><span>Повторить</span></button>
+              <button id="step-button" class="text-button" disabled><svg><use href="#i-step"/></svg>Шаг</button>
+              <button id="finish-button" class="text-button" disabled>Сразу</button>
+              <label class="playback-speed">Скорость <select id="playback-speed" aria-label="Скорость сборки"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+            </div>
+          </div>
+
+          <div class="result-strip panel" aria-live="polite">
+            <div class="result-stat"><span>Стоимость</span><strong id="total-value">0</strong></div>
+            <div class="result-stat volume-stat"><span>Объём</span><strong id="total-volume">0 <small>/ 18</small></strong><div class="volume-meter"><span id="volume-fill"></span></div></div>
+            <div class="result-stat"><span>Время поиска</span><strong id="solve-time">— <small>мс</small></strong><span class="time-caption" id="time-caption">Медиана 5 запусков</span></div>
+          </div>
+        </div>
+        <section id="trace-area" class="trace-area panel" hidden>
+          <div class="trace-heading"><h2>Ход решения</h2><span id="trace-method">Оптимизированный поиск</span><button id="trace-record" class="secondary-button">Записать ход</button></div>
+          <div class="trace-toolbar">
+            <button id="trace-play" class="playback-button" disabled><svg><use href="#i-play"/></svg><span>Воспроизвести</span></button>
+            <button id="trace-back" class="text-button" disabled>Назад</button>
+            <button id="trace-next" class="text-button" disabled><svg><use href="#i-step"/></svg>Шаг</button>
+            <button id="trace-end" class="text-button" disabled>В конец</button>
+            <label class="playback-speed">Скорость <select id="trace-speed" aria-label="Скорость показа поиска"><option value="1">1×</option><option value="2">2×</option><option value="8">8×</option><option value="32">32×</option></select></label>
+          </div>
+          <div class="trace-seek"><input type="range" id="trace-position" min="0" max="0" value="0" aria-label="Шаг поиска" disabled><span id="trace-position-label">Нет записи</span></div>
+          <div class="trace-current" aria-live="polite"><div class="trace-event-heading"><span id="trace-event-kind">Начните запись</span><span id="trace-node-label"></span></div><p id="trace-description">Нажмите «Записать ход». Для знакомства подойдёт учебный набор из четырёх предметов.</p></div>
+          <div class="trace-state-stats">
+            <div><span>Объём</span><strong id="trace-volume">—</strong></div>
+            <div><span>Стоимость</span><strong id="trace-cost">—</strong></div>
+            <div><span>Верхняя оценка</span><strong id="trace-bound">—</strong></div>
+            <div><span>Лучшая стоимость</span><strong id="trace-best-cost">—</strong></div>
+          </div>
+          <div class="trace-choices" id="trace-choices" hidden>
+            <div id="trace-skip" class="trace-choice"><strong>Пропустить</strong><span id="trace-skip-detail"></span></div>
+            <div id="trace-take" class="trace-choice"><strong>Взять</strong><span id="trace-take-detail"></span></div>
+          </div>
+          <div class="trace-path"><span>Предметы в текущем состоянии</span><div id="trace-path-items">Пустой набор</div></div>
+          <div class="trace-counters"><span>Рассмотрено <strong id="trace-visited">0</strong></span><span>Отсечено <strong id="trace-pruned">0</strong></span><span><span id="trace-frontier-label">В очереди</span> <strong id="trace-pending">0</strong></span></div>
+          <div class="trace-tree-section" id="trace-tree-section" hidden><div class="trace-tree-heading"><h3>Дерево поиска</h3><span>− пропустить · + взять · в узле стоимость</span></div><div id="trace-tree" class="trace-tree-scroll"></div><div class="trace-legend"><span><i class="current-node"></i>Текущее</span><span><i class="best-node"></i>Лучшее</span><span><i class="cut-node"></i>Отсечено</span></div></div>
+          <p class="trace-note" id="trace-note">События записываются во время выполнения C++ алгоритма. Время измеряется отдельно, без записи шагов.</p>
+          <div class="trace-result" id="trace-result" hidden><span id="trace-result-description"></span><button id="trace-show-result" class="secondary-button">Показать набор в рюкзаке<svg><use href="#i-arrow"/></svg></button></div>
+        </section>
+      </section>
+
+      <section id="comparison-view" class="comparison-view" hidden>
+        <div class="comparison-heading"><p>Медианное время пяти запусков на одном наборе.</p><span id="comparison-dataset">8 предметов · 18 ед.</span></div>
+        <div class="comparison-grid">
+          <article class="method-card panel"><h2>Оптимизированный поиск</h2><p>Отсечения по верхней оценке и таблица состояний.</p><div class="method-timing"><strong id="optimized-time">—</strong><span>мс</span></div><div class="chart-track"><span id="optimized-bar" class="chart-bar optimized-bar"></span></div><div class="method-details" id="optimized-details">Нет результатов</div></article>
+          <article class="method-card panel"><h2>Полный перебор</h2><p>Перебор допустимых вариантов «взять или пропустить».</p><div class="method-timing"><strong id="brute-time">—</strong><span>мс</span></div><div class="chart-track"><span id="brute-bar" class="chart-bar brute-bar"></span></div><div class="method-details" id="brute-details">Нет результатов</div></article>
+        </div>
+        <div id="comparison-verdict" class="comparison-verdict"><p>Запустите сравнение для текущего набора.</p></div>
+        <p class="comparison-footnote">На наборах больше 28 предметов выполняется только оптимизированный поиск.</p>
+      </section>
+
+      <section id="structures-view" class="structure-workspace" hidden>
+        <aside class="structure-controls panel">
+          <h2>Что проверяем</h2>
+          <label>Структура<select id="structure-kind">
+            <option value="array">Динамический массив</option>
+            <option value="tree">AVL-дерево</option>
+            <option value="hash">Хеш-таблица</option>
+            <option value="queue">Очередь с приоритетами</option>
+            <option value="minheap">Минимальная куча</option>
+            <option value="maxheap">Максимальная куча</option>
+          </select></label>
+          <label>Тип данных<select id="structure-type">
+            <option value="int">int · целые числа</option>
+            <option value="double">double · дробные числа</option>
+            <option value="string">std::string · строки</option>
+          </select></label>
+          <p class="structure-hint" id="structure-hint"></p>
+          <button id="structure-tests" class="secondary-button">Готовые проверки<svg><use href="#i-arrow"/></svg></button>
+          <form id="structure-form">
+            <h2>Своя операция</h2>
+            <label>Метод<select id="structure-operation"></select></label>
+            <label data-lab-field="size">Новый размер<input id="structure-size" type="number" value="3" required></label>
+            <label data-lab-field="index">Индекс<input id="structure-index" type="number" value="0" required></label>
+            <label data-lab-field="key">Ключ<input id="structure-key" maxlength="80" value="2" autocomplete="off"></label>
+            <label data-lab-field="value">Значение<input id="structure-value" maxlength="80" value="2" autocomplete="off"></label>
+            <label data-lab-field="priority">Приоритет<input id="structure-priority" type="number" value="1" required></label>
+            <button id="structure-apply" class="primary-button" type="submit">Выполнить<svg><use href="#i-arrow"/></svg></button>
+          </form>
+          <p id="structure-manual-note" class="structure-hint" hidden>Идут готовые проверки. Нажмите «Очистить», чтобы вводить свои операции.</p>
+        </aside>
+        <div class="structure-results">
+          <section class="panel structure-state">
+            <div class="structure-section-heading"><h2 id="structure-title">DynamicArray&lt;int&gt;</h2><button id="structure-reset" class="text-button"><svg><use href="#i-reset"/></svg>Очистить</button></div>
+            <div id="structure-stats" class="structure-stats"></div>
+            <p id="structure-snapshot-title" class="structure-caption">Элементы</p>
+            <div id="structure-snapshot" class="structure-snapshot" aria-label="Состояние структуры"></div>
+            <p id="structure-result" class="structure-result" role="status">Выберите метод и выполните операцию.</p>
+          </section>
+          <section class="panel structure-checks">
+            <div class="structure-section-heading"><h2 id="structure-log-title">История операций</h2><span id="structure-check-count"></span></div>
+            <div id="structure-playback" class="structure-playback" hidden>
+              <button id="structure-play" class="playback-button"><svg><use href="#i-play"/></svg><span>Пройти все</span></button>
+              <button id="structure-back" class="text-button">Назад</button>
+              <button id="structure-next" class="text-button"><svg><use href="#i-step"/></svg>Шаг</button>
+              <button id="structure-end" class="text-button">Сразу</button>
+            </div>
+            <div class="structure-log-columns"><span>Операция</span><span>Ожидаем</span><span>Получили</span></div>
+            <div id="structure-log" class="structure-log" aria-label="Результаты операций"></div>
+            <p class="structure-footnote">Операции выполняются в C++ на структурах из проекта. В готовых проверках ожидаемое исключение считается успешным результатом. Нажмите строку проверки, чтобы вернуться к её состоянию.</p>
+          </section>
+        </div>
+      </section>
+
+      <section class="run-bar">
+        <span id="run-description">Метод поиска</span>
+        <div class="method-select" role="group" aria-label="Метод поиска"><button class="method-option active" data-method="optimized">Оптимизированный</button><button class="method-option" data-method="brute">Полный перебор</button><button class="method-option" data-method="compare">Сравнить</button></div>
+        <button id="solve-button" class="primary-button"><span>Решить</span><svg><use href="#i-arrow"/></svg></button>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="generate-dialog">
+    <form id="generate-form">
+      <div class="dialog-top"><h2>Генерация предметов</h2><button type="button" class="icon-button" data-close-dialog aria-label="Закрыть"><svg><use href="#i-close"/></svg></button></div>
+      <div class="form-grid">
+        <label>Количество предметов<input name="count" type="number" min="0" max="200" value="12" required></label>
+        <label>Вместимость рюкзака<input name="capacity" type="number" min="0" max="1000000" value="30" required></label>
+        <label>Максимальный объём<input name="maxVolume" type="number" min="1" max="1000000" value="12" required></label>
+        <label>Максимальная стоимость<input name="maxValue" type="number" min="1" max="1000000" value="100" required></label>
+        <label class="full-width">Число генератора<span class="seed-field"><input name="seed" type="number" min="0" max="2147483647" value="2026" required><button type="button" id="new-seed-button" class="icon-button" title="Случайное число" aria-label="Случайное число генератора"><svg><use href="#i-dice"/></svg></button></span><small>Одинаковое число воспроизводит тот же набор.</small></label>
+      </div>
+      <button class="primary-button" type="submit">Сгенерировать<svg><use href="#i-arrow"/></svg></button>
+    </form>
+  </dialog>
+  <dialog id="item-dialog">
+    <form id="item-form">
+      <div class="dialog-top"><h2 id="item-dialog-title">Добавить предмет</h2><button type="button" class="icon-button" data-close-dialog aria-label="Закрыть"><svg><use href="#i-close"/></svg></button></div>
+      <div class="form-grid"><label class="full-width">Название<input name="name" maxlength="40" placeholder="Название предмета" required></label><label>Объём<input name="volume" type="number" min="0" max="1000000" value="3" required></label><label>Стоимость<input name="value" type="number" min="-1000000" max="1000000" value="50" required></label></div>
+      <button class="primary-button" type="submit">Добавить<svg><use href="#i-plus"/></svg></button>
+    </form>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
